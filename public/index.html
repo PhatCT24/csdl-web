@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh sách phương tiện</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Danh sách phương tiện</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Maker</th>
+                <th>Model</th>
+                <th>Price</th>
+                <th>Type</th>
+            </tr>
+        </thead>
+        <tbody id="vehicleTable">
+            <!-- Dữ liệu sẽ được thêm vào đây -->
+        </tbody>
+    </table>
+
+    <script>
+        async function fetchVehicles() {
+            try {
+                const response = await fetch('/vehicles');
+                const data = await response.json();
+
+                const tableBody = document.getElementById('vehicleTable');
+                tableBody.innerHTML = ''; // Xóa dữ liệu cũ nếu có
+
+                data.forEach(vehicle => {
+                    const row = `<tr>
+                        <td>${vehicle.maker}</td>
+                        <td>${vehicle.model}</td>
+                        <td>${vehicle.price}</td>
+                        <td>${vehicle.Vtype}</td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                });
+            } catch (error) {
+                console.error('Lỗi tải dữ liệu:', error);
+            }
+        }
+
+        fetchVehicles();
+    </script>
+</body>
+</html>
