@@ -3,46 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Danh sách phương tiện</title>
+    <title>Quản lý Phương Tiện</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Danh sách phương tiện</h1>
-    <table border="1">
+    
+    <h1>Quản lý Phương Tiện</h1>
+
+    <label>Tìm kiếm:</label>
+    <input type="text" id="searchInput" placeholder="Nhập từ khóa..." oninput="fetchVehicles()">
+    <button onclick="fetchVehicles()">Làm mới</button>
+
+    <h2>Thêm / Sửa Phương Tiện</h2>
+    <input type="text" id="maker" placeholder="Hãng xe">
+    <input type="text" id="model" placeholder="Mẫu xe">
+    <input type="number" id="price" placeholder="Giá">
+    <input type="text" id="type" placeholder="Loại xe">
+    <button onclick="addVehicle()">Thêm</button>
+    <button onclick="updateVehicle()">Cập nhật</button>
+
+    <h2>Danh sách Phương Tiện</h2>
+    <table>
         <thead>
             <tr>
-                <th>Maker</th>
-                <th>Model</th>
-                <th>Price</th>
-                <th>Type</th>
+                <th onclick="fetchVehicles('maker')">Hãng</th>
+                <th onclick="fetchVehicles('model')">Model</th>
+                <th onclick="fetchVehicles('price')">Giá</th>
+                <th onclick="fetchVehicles('Vtype')">Loại</th>
+                <th>Hành động</th>
             </tr>
         </thead>
-        <tbody id="vehicleTable">
-            <!-- Dữ liệu sẽ được thêm vào đây -->
-        </tbody>
+        <tbody id="vehicleTable"></tbody>
     </table>
 
     <script>
-        async function fetchVehicles() {
+        let currentSort = { column: 'Model', order: 'ASC' };
+
+        async function fetchVehicles(sortBy = currentSort.column) {
             try {
-                const response = await fetch('/vehicles');
+                const searchValue = document.getElementById('searchInput').value.trim();
+                
+                if (currentSort.column === sortBy) {
+                    currentSort.order = currentSort.order === 'ASC' ? 'DESC' : 'ASC';
+                } else {
+                    currentSort.column = sortBy;
+                    currentSort.order = 'ASC';
+                }
+
+                const response = await fetch(`/vehicles?search=${searchValue}&sortBy=${sortBy}&order=${currentSort.order}`);
                 const data = await response.json();
-
-                const tableBody = document.getElementById('vehicleTable');
-                tableBody.innerHTML = ''; // Xóa dữ liệu cũ nếu có
-
-                data.forEach(vehicle => {
-                    const row = `<tr>
-                        <td>${vehicle.maker}</td>
-                        <td>${vehicle.model}</td>
-                        <td>${vehicle.price}</td>
-                        <td>${vehicle.Vtype}</td>
-                    </tr>`;
-                    tableBody.innerHTML += row;
-                });
+                renderTable(data);
             } catch (error) {
                 console.error('Lỗi tải dữ liệu:', error);
             }
+        }
+
+        function renderTable(data) {
+            const tableBody = document.getElementById('vehicleTable');
+            tableBody.innerHTML = '';
+            data.forEach(vehicle => {
+                let row = `<tr>
+                    <td>${vehicle.maker}</td>
+                    <td>${vehicle.model}</td>
+                    <td>${vehicle.price}</td>
+                    <td>${vehicle.Vtype}</td>
+                    <td>
+                        <button onclick="editVehicle('${vehicle.maker}', '${vehicle.model}', ${vehicle.price}, '${vehicle.Vtype}')">Sửa</button>
+                        <button onclick="deleteVehicle('${vehicle.model}')">Xóa</button>
+                    </td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+        
+        async function searchVehicles() {
+        const keyword = document.getElementById('searchInput').value;
+        const response = await fetch(`/search?keyword=${encodeURIComponent(keyword)}`);
+        const data = await response.json();
+        renderTable(data);
+    }
+        async function addVehicle() {
+            const maker = document.getElementById("maker").value;
+            const model = document.getElementById("model").value;
+            const price = document.getElementById("price").value;
+            const type = document.getElementById("type").value;
+
+            if (!maker || !model || !price || !type) {
+                alert("❌ Vui lòng nhập đầy đủ thông tin!");
+                return;
+            }
+
+            const response = await fetch('/vehicles', {
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ maker, model, price, type })
+            });
+
+            const result = await response.json();
+            alert(result.message || result.error);
+            fetchVehicles();
+        }
+
+        function editVehicle(maker, model, price, type) {
+            document.getElementById("maker").value = maker;
+            document.getElementById("model").value = model;
+            document.getElementById("price").value = price;
+            document.getElementById("type").value = type;
+        }
+
+        async function updateVehicle() {
+            const maker = document.getElementById("maker").value;
+            const model = document.getElementById("model").value;
+            const price = document.getElementById("price").value;
+            const type = document.getElementById("type").value;
+
+            if (!model) {
+                alert("❌ Không tìm thấy model để cập nhật!");
+                return;
+            }
+
+            const response = await fetch('/vehicles', {
+                method: 'PUT',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ maker, model, price, type })
+            });
+
+            const result = await response.json();
+            alert(result.message || result.error);
+            fetchVehicles();
+        }
+
+        async function deleteVehicle(model) {
+            if (!confirm("Bạn có chắc chắn muốn xóa?")) return;
+
+            const response = await fetch(`/vehicles/${model}`, { method: 'DELETE' });
+
+            const result = await response.json();
+            alert(result.message || result.error);
+            fetchVehicles();
         }
 
         fetchVehicles();
